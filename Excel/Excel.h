@@ -21,7 +21,6 @@ class Excel
 		IndexCell* right;
 		Text Str;
 		Font romanT;
-
 		IndexCell(string idx, IndexCell* _up = nullptr, IndexCell* _down = nullptr,  IndexCell* _left = nullptr,  IndexCell* _right = nullptr):up(_up),down(_down),left(_left),right(_right)
 		{
 			Str.setCharacterSize(15);
@@ -81,6 +80,7 @@ class Excel
 	int highlighted_rows;
 	int highlighted_columns;
 	Font TimesRoman;
+	string Query;
 
 public:
 	Excel()
@@ -192,21 +192,6 @@ public:
 			TH->DrawIndexCell(x, y, TimesRoman, Tsize, window);
 			TH = TH->right;
 		}
-	}
-	void InsertData(string A,int ri,int ci)
-	{
-
-		Node* T = head;
-
-		for (int i = 0; i < ri; i++)
-		{
-			T = T->down;
-		}
-		for (int i = 0; i < ci; i++)
-		{
-			T = T->right;
-		}
-		T->Data = A;
 	}
 	void delete_Row(Node* temp)
 	{
@@ -421,7 +406,7 @@ public:
 		
 		Node* current = head;
 		Node* _right= current;
-		head=current = new Node("n", nullptr, nullptr,nullptr,_right);
+		head=current = new Node("", nullptr, nullptr,nullptr,_right);
 		
 		_right->left = current;
 		_right= _right->down;
@@ -450,7 +435,7 @@ public:
 			_left = current;
 			current = current->right;
 		}
-		current = new Node("n", nullptr, nullptr,_left);
+		current = new Node("", nullptr, nullptr,_left);
 		_left->right = current;
 		_left= _left->down;
 
@@ -496,10 +481,11 @@ public:
 		{
 			temp = temp->up;
 		}
+		temp = temp->right;
 		Node* current = temp;
 		Node* _left= current->left;
 		Node* _right= current;
-		current = new Node("", nullptr, nullptr,_left,_right);
+		current = new Node("n", nullptr, nullptr,_left,_right);
 		_left->right = current;
 		_right->left = current;
 		_left= _left->down;
@@ -522,7 +508,6 @@ public:
 		TopIndexTail = TopIndexTail->right;
 		no_of_cols++;
 	}
-
 	int DisplayOptions(int Pos_x,int Pos_y)
 	{
 		sf::RenderWindow window(sf::VideoMode(150, 200), "options", sf::Style::Close);
@@ -893,15 +878,193 @@ public:
 	}
 	void InsertCellAtRight(Node* temp)
 	{
+		if (!temp)return;
+		if (temp && !right)
+		{
+			InsertColumnAtEnd(); return;
+		}
+		temp = temp->right;
+		InsertCellAtLeft(temp);
+	}
+	bool IsValidQuery(string S)
+	{
+		if (S.empty())return false;
+		if (S[0] != '=')return false;
+		if(S[4] != '(')return false;
+		if ((S[5] < 65 || S[5]>90)||(S[8]<65||S[8]>90))return false;
+		if ((S[6] < 48 || S[6]>=58)||(S[9]<48||S[9]>=58))return false;
+		if (S[7] != ':')return false;
+		if (S[10] != ')')return false;
+		if (S[5] != S[8])return false;
+		return true;
+	}
+	bool isCountQuery(string S)
+	{
+		if (S.empty())return false;
+		if (S[0] != '=')return false;
+		if (S[1] != 'C' || S[2] != 'O' || S[3] != 'U' || S[4] != 'N' || S[5] != 'T')
+			return false;
+		if (S[6] != '(')return false;
+		if ((S[7] < 65 || S[7]>90) || (S[10] < 65 || S[10]>90))return false;
+		if ((S[8] < 48 || S[8] >= 58) || (S[11] < 48 || S[11] >= 58))return false;
+		if (S[9] != ':')return false;
+		if (S[12] != ')')return false;
+		if (S[7] != S[10])return false;
+		return true;
+	}
+	string CalculateRange(string funct)
+	{
+		int count=0;
+		string S{};
+		int sum = 0;
+		
+	
+		if (isCountQuery(funct))
+		{
+			return CalculculateCountRange(funct);
+		}
+		else if (IsValidQuery(funct))
+		{
+			count = funct[9] - funct[6]+1;
+			if (funct[1] == 'S' && funct[2] == 'U' && funct[3] == 'M')
+				return CalculculateSumRange(funct);
+			else if (funct[1] == 'A' && funct[2] == 'V' && funct[3] == 'G')
+			{
+				S = CalculculateSumRange(funct);
+				sum = stoi(S);
+				S = CalculculateCountRange(funct);
+				sum = sum / stoi(S);
+				return to_string(sum);
+
+			}
+
+			else	if (funct[1] == 'M' && funct[2] == 'I' && funct[3] == 'N')
+			{
+				return CalculculateMinRange(funct);
+			}
+			else	if (funct[1] != 'M' && funct[2] != 'A' && funct[3] != 'X')
+				return CalculculateMaxRange(funct);
+		}
+		
+		else return "";
+	}
+	string CalculculateCountRange(string funct)
+	{
+		int Count = 0;
+
+		if (((funct[11]) - 48) > no_of_rows)return "";
+		if ((funct[7] - 64) > no_of_cols)return "";
+		Node* temp = head;
+		for (int i = 1; i < funct[7] - 64; i++)
+		{
+			temp = temp->right;
+		}
+		for (int i = 1; i < funct[8] - 48; i++)
+		{
+			temp = temp->down;
+		}
+		for (char i = funct[8]; i <= funct[11]; i++)
+		{
+			if (temp->Data != "")
+				Count++;;
+			temp = temp->down;
+		}
+
+		return to_string(Count);
+
+
+	
+	}
+	string CalculculateSumRange(string funct)
+	{
+		int sum = 0;
+
+		if (((funct[9]) - 48) > no_of_rows)return "";
+		if ((funct[5] - 64) > no_of_cols)return "";
+		Node* temp = head;
+		for (int i = 1; i < funct[5] - 64; i++)
+		{
+			temp = temp->right;
+		}
+		for (int i = 1; i < funct[6] - 48; i++)
+		{
+			temp = temp->down;
+		}
+		for (char i = funct[6]; i <= funct[9]; i++)
+		{
+			if (temp->Data != "")
+				sum += stoi(temp->Data);
+			temp = temp->down;
+		}
+
+		return to_string(sum);
+
+
+	}
+	string CalculculateMinRange(string funct)
+	{
+		int min = INT_MAX;
+
+		if (((funct[9]) - 48) > no_of_rows)return "";
+		if ((funct[5] - 64) > no_of_cols)return "";
+		Node* temp = head;
+		for (int i = 1; i < funct[5] - 64; i++)
+		{
+			temp = temp->right;
+		}
+		for (int i = 1; i < funct[6] - 48; i++)
+		{
+			temp = temp->down;
+		}
+		for (char i = funct[6]; i <= funct[9]; i++)
+		{
+			if (temp->Data != "")
+			{
+				if (stoi(temp->Data) < min)
+					min = stoi(temp->Data);
+			}
+			temp = temp->down;
+		}
+		if (min == INT_MAX)return "";
+		return to_string(min);
+
+
+	}
+	string CalculculateMaxRange(string funct)
+	{
+		int max = INT_MIN;
+
+		if (((funct[9]) - 48) > no_of_rows)return "";
+		if ((funct[5] - 64) > no_of_cols)return "";
+		Node* temp = head;
+		for (int i = 1; i < funct[5] - 64; i++)
+		{
+			temp = temp->right;
+		}
+		for (int i = 1; i < funct[6] - 48; i++)
+		{
+			temp = temp->down;
+		}
+		for (char i = funct[6]; i <= funct[9]; i++)
+		{
+			if (temp->Data != "")
+			{
+				if (stoi(temp->Data) > max)
+					max = stoi(temp->Data);
+			}
+			temp = temp->down;
+		}
+		if (max == INT_MIN)return "";
+		return to_string(max);
 
 
 	}
 	void LaunchExcel()
 	{
-		
 			sf::RenderWindow window(sf::VideoMode(1375, 696), "Mini_Excel_Sheet", sf::Style::Close | sf::Style::Resize);
 			window.setPosition(sf::Vector2i(-10, 0));
 			sf::Color veryLightGrey(200, 200, 200);
+			sf::Color HighlightGrey(192, 192, 192, 128);
 			sf::Vector2f mouseWorldPosition ;
 			sf::Vector2f scrollableArea(2420, 1500);
 			bool isDragging = false;
@@ -923,9 +1086,17 @@ public:
 			fx.loadFromFile("Fx.ttf");
 			Fx.setFont(fx);
 			Fx.setString("fx : ");
-			Fx.setCharacterSize(23);
+			Fx.setCharacterSize(19);
 			Fx.setPosition(179, 25);
 			Fx.setFillColor(Color::Black);
+
+			Text function;
+			Font f;
+			f=TimesRoman;
+			function.setFont(f);
+			function.setCharacterSize(19);
+			function.setPosition(279, 27);
+			function.setFillColor(Color::Black);
 
 
 			//------------
@@ -976,410 +1147,537 @@ public:
 			float horizontalOffset;
 			float verticalOffset;
 			int Hr_thumb_last_pos = 0,Hr_thumb_current_pos=0;
+			bool Query_entering = false;
+			bool hoovered = false;
 			//-------------------------------------
 			sf::Color transparentGrey(255, 255, 255, 190);
 			int x = {} ,y = {};
+			//------------------------------
+			sf::Vector2f contextMenuPosition;
+			bool isContextMenuVisible = false;
+			sf::Text Insert_RB("Insert Row Below", TimesRoman, 13);
+			Insert_RB.setFillColor(sf::Color::Black);
+
+			sf::Text Insert_RA("Insert Row Above", TimesRoman, 13);
+			Insert_RA.setFillColor(sf::Color::Black);
+
+			sf::Text ClearRow("Clear Row", TimesRoman, 13);
+			ClearRow.setFillColor(sf::Color::Black);
+			
+			sf::Text Insert_CB("Insert Col Left", TimesRoman, 13);
+			Insert_RB.setFillColor(sf::Color::Black);
+
+			sf::Text Insert_CA("Insert Col Right", TimesRoman, 13);
+			Insert_RA.setFillColor(sf::Color::Black);
+
+			sf::Text ClearColumn("Clear Column", TimesRoman, 13);
+			ClearRow.setFillColor(sf::Color::Black);
+			//--------------------------
+		
+			sf::Text InsertCell_L("Insert Cell Left", TimesRoman, 13);
+			InsertCell_L.setFillColor(sf::Color::Black);
+
+			sf::Text InsertCell_R("Insert Cell Right", TimesRoman, 13);
+			InsertCell_R.setFillColor(sf::Color::Black);
+
+			sf::Text Delete_Row("Delete Row", TimesRoman, 13);
+			Delete_Row.setFillColor(sf::Color::Black);
+
+			sf::Text Delete_Col("Delete Column", TimesRoman, 13);
+			Delete_Col.setFillColor(sf::Color::Black);
+
+			//-----------------------------
 			while (window.isOpen()) {
 				sf::Event evnt;
 				window.clear();
 			
-				while (window.pollEvent(evnt)) {
+				while (window.pollEvent(evnt))
+				{
 					if (evnt.type == sf::Event::Closed)
 						window.close();
-					
+
 					else if (evnt.type == sf::Event::MouseButtonPressed && evnt.mouseButton.button == sf::Mouse::Left)
 					{
 						mouseWorldPosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
 
-
-						FindClickedCell(T, mouseWorldPosition);
-						 Highlighted_box.setSize(Vector2f(79, 24));
-						 Current = T;
-						 Prev = T;
-						 hr = highlighted_rows;
-						 hc = highlighted_columns;
-						 highlighted_columns = 1;
-						 highlighted_rows = 1;
-						 Unhighlightselecteddata();
-						 up_or_left = false;;
-					}					
-					if (evnt.type == sf::Event::TextEntered) 
-					{
-						if (Current)
-						{
+						
+						
+							if (T&&Insert_RB.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y)))
+							{
+								InsertRowBelow(T);
+							}
+							else if (T && Insert_RA.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y))) {
+								InsertRowAbove(T);
+							}
+							else if (T && ClearRow.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y))) {
+								EraseRow(T);
+							}
+							else if (T&&Insert_CB.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y)))
+							{
+								InsertColumnAtLeft(T);
+							}
+							else if (T && Insert_CA.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y))) {
+								InsertColumnAtRight(T);
+							}
+							else if (T && ClearColumn.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y))) {
+								EraseColumn(T);
+							}
 							
-							if (evnt.text.unicode < 128)
-							{
-								if (evnt.text.unicode == 8) 
-								{ 
-									if (!Current->Data.empty())
-									{
-										Current->Data.pop_back();
-									}
-								}
-								else if(evnt.text.unicode >= 48 && evnt.text.unicode <= 57)
-								{
-									if(Current->Data.length()<7)
-										
-									Current->Data += static_cast<char>(evnt.text.unicode);
-									
-								}
+							else if (T && InsertCell_L.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y))) {
+								InsertCellAtLeft(T);
 							}
-						}
-					}
-					if (evnt.type == sf::Event::KeyPressed) 
-					{
-
-						if (evnt.key.control)
-						{
-
-							if (evnt.key.code == sf::Keyboard::C)
+							else if (T&& InsertCell_R.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y)))
 							{
-								selected_cells.clear();
-								CopyData(Is_down, is_right);
+								InsertCellAtRight(T);
 							}
-							else if (evnt.key.code == sf::Keyboard::X)
-							{
-								selected_cells.clear();
-
-								CopyData(Is_down, is_right);
-								for (int i = 0; i < selected_cells.size(); i++)
-								{
-									selected_cells[i]->Data = "";
-								}
+							else if (T && Delete_Row.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y))) {
+								delete_Row(T);
 							}
-							else if (evnt.key.code == sf::Keyboard::V)
+							else if (T && Delete_Col.getGlobalBounds().contains(sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y))) {
+								delete_column(T);
+							}
+
+
+
+							else
 							{
-								Node* Temp_prev = Current;
-								Node* Temp_curr = Current;
-								if (is_right && Is_down)
+								FindClickedCell(T, mouseWorldPosition);
+								Highlighted_box.setSize(Vector2f(79, 24));
+								Current = T;
+								Prev = T;
+								if (T)
 								{
-									for (int i = 0; i < Copy.size(); i++)
-									{
-										for (int j = 0; j < Copy[i].size(); j++)
-										{
-											if (Temp_curr)
-											{
-												Temp_curr->Data = Copy[i][j];
-												Temp_curr = Temp_curr->right;
-											}
-										}
-										if (!Temp_prev->down)break;
-										Temp_prev = Temp_prev->down;
-										Temp_curr = Temp_prev;
-									}
+									Query = "";
+									function.setString(Query);
 								}
-								if (is_right && !Is_down)
-								{
-									for (int i = 0; i < Copy.size(); i++)
-									{
-										for (int j = 0; j < Copy[i].size(); j++)
-										{
-											if (Temp_curr)
-											{
-												Temp_curr->Data = Copy[i][j];
-												Temp_curr = Temp_curr->right;
-											}
-										}
-										if (!Temp_prev->up)break;
-										Temp_prev = Temp_prev->up;
-										Temp_curr = Temp_prev;
-									}
-								}
-								if (!is_right && Is_down)
-								{
-									for (int i = 0; i < Copy.size(); i++)
-									{
-										for (int j = 0; j < Copy[i].size(); j++)
-										{
-											if (Temp_curr)
-											{
-												Temp_curr->Data = Copy[i][j];
-												Temp_curr = Temp_curr->left;
-											}
-										}
-										if (!Temp_prev->down)break;
-										Temp_prev = Temp_prev->down;
-										Temp_curr = Temp_prev;
-									}
-								}
-								if (!is_right && !Is_down)
-								{
-									for (int i = 0; i < Copy.size(); i++)
-									{
-										for (int j = 0; j < Copy[i].size(); j++)
-										{
-											if (Temp_curr)
-											{
-												Temp_curr->Data = Copy[i][j];
-												Temp_curr = Temp_curr->left;
-											}
-										}
-										if (!Temp_prev->up)break;
-										Temp_prev = Temp_prev->up;
-										Temp_curr = Temp_prev;
-									}
-								}
-								
+								hr = highlighted_rows;
+								hc = highlighted_columns;
+								highlighted_columns = 1;
+								highlighted_rows = 1;
 								Unhighlightselecteddata();
+								up_or_left = false;;
 
 							}
-						}
-						else if (evnt.key.shift)
+							isContextMenuVisible = false;
+					}
+					if (evnt.type == sf::Event::TextEntered)
+					{
+						if(!Query_entering)
 						{
-							
-							if (evnt.key.code == sf::Keyboard::Down)
+							if (Current)
 							{
 
-								Is_down = false;
-								Vector2f Box_size = Highlighted_box.getSize();
-								if (Current && Current->down)
+								if (evnt.text.unicode < 128)
 								{
-									Current = Current->down;
-									Node* temp = Current;
-									if (HasSameRow(temp,Prev,is_right))
+									if (evnt.text.unicode == 8)
 									{
-										temp = Current->up;
-										ChangeRowColor(is_right, temp, Color::White);
-										if(is_right)
-											Curr_position = Prev->GetPosition();
-										else
-											Curr_position = Current->GetPosition();
-										Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
-										Box_size.y -= 25;
-										Highlighted_box.setSize(Box_size);
-										up_or_left = true;
-										highlighted_rows--;
+										if (!Current->Data.empty())
+										{
+											Current->Data.pop_back();
+										}
+									}
+									else if (evnt.text.unicode >= 48 && evnt.text.unicode <= 57)
+									{
+										if (Current->Data.length() < 7)
+
+											Current->Data += static_cast<char>(evnt.text.unicode);
 
 									}
-									else if (Current->GetColor() == Color::White)
-									{
-										temp = Current;
-										ChangeRowColor(is_right, temp, transparentGrey);
-										Box_size.y += 25;
-										Highlighted_box.setSize(Box_size);
-										Is_down = true;
-										highlighted_rows++;
-									}
-									else if (Current->GetColor() == transparentGrey)
-									{
-										temp = Current->up;
-										Box_size.y -= 25;
-										ChangeRowColor(is_right, temp, Color::White);
-										temp = temp->down;
-										if(is_right)
-										Curr_position = temp->right->GetPosition();
-										else
-											Curr_position = Current->GetPosition();
-
-										Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
-										Highlighted_box.setSize(Box_size);
-										up_or_left = true;
-										Is_down = false;											
-										highlighted_rows--;
-									}
-
 								}
-							}
-							else if (evnt.key.code == sf::Keyboard::Up)
-							{
-								Is_down= false;
-
-								Vector2f Box_size = Highlighted_box.getSize();
-								if (Current && Current->up)
-								{
-									Current = Current->up;
-									Node* temp = Current;
-									if (HasSameRow(temp, Prev, is_right))
-									{
-										temp = Current->down;
-										ChangeRowColor(is_right, temp, Color::White);
-										if(is_right)
-										Curr_position = Prev->GetPosition();
-										else 
-											Curr_position = Current->GetPosition();
-										Box_size.y -= 25;
-										Highlighted_box.setSize(Box_size);
-
-										Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
-										up_or_left = true;
-										highlighted_rows--;
-									}
-									else if (Current->GetColor() == Color::White)
-									{
-										temp = Current;
-										ChangeRowColor(is_right, temp, transparentGrey);
-										Box_size.y += 25;
-										Highlighted_box.setSize(Box_size);
-										if (is_right)
-											Curr_position = temp->right->GetPosition();
-										else
-											Curr_position = Current->GetPosition();
-
-										Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
-										Is_down = false;
-										up_or_left = true;
-										highlighted_rows++;
-									}
-									else if (Current->GetColor() == transparentGrey)
-									{
-										temp = Current->down;
-										ChangeRowColor(is_right, temp, Color::White);
-										Box_size.y -= 25;
-										Highlighted_box.setSize(Box_size);
-										up_or_left = true;
-										Is_down = true;
-										highlighted_rows--;
-									}
-
-								}
-							}
-							else if (evnt.key.code == sf::Keyboard::Right)
-							{
-								is_right = false;
-
-								Vector2f Box_size = Highlighted_box.getSize();
-								if (Current && Current->right)
-								{
-									Current = Current->right;
-									Node* temp = Current;
-									if (HasSameCol(temp, Prev, Is_down))
-									{
-										temp = Current->left;
-										ChangeColumnColor(Is_down, temp, Color::White);
-										if (Is_down)
-											Curr_position = Prev->GetPosition();
-										else
-											Curr_position = Current->GetPosition();
-										Box_size.x -= 80;
-										Highlighted_box.setSize(Box_size);
-
-										Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
-										up_or_left = true;
-										highlighted_columns--;
-									}
-									else if (Current->GetColor() == Color::White)
-									{
-										temp = Current;
-										ChangeColumnColor(Is_down, temp, transparentGrey);
-										Box_size.x += 80;
-										Highlighted_box.setSize(Box_size);
-										is_right = true;;
-										up_or_left = true;
-										highlighted_columns++;
-									}
-									else if (Current->GetColor() == transparentGrey)
-									{
-										temp = Current->left;
-										ChangeColumnColor(Is_down, temp, Color::White);
-										Box_size.x -= 80;
-										Highlighted_box.setSize(Box_size);
-										temp = temp->down;
-										if (Is_down)
-											Curr_position = temp->right->GetPosition();
-										else
-											Curr_position = Current->GetPosition();
-
-										Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
-										up_or_left = true;
-										is_right = false;
-										highlighted_columns--;
-									}
-
-								}
-
-							}
-							else if (evnt.key.code == sf::Keyboard::Left)
-							{
-								is_right = false;
-
-								Vector2f Box_size = Highlighted_box.getSize();
-								if (Current && Current->left)
-								{
-									Current = Current->left;
-									Node* temp = Current;
-									if (HasSameCol(temp, Prev, Is_down))
-									{
-										temp = Current->right;
-										ChangeColumnColor(Is_down, temp, Color::White);
-										if (Is_down)
-											Curr_position = Prev->GetPosition();
-										else
-											Curr_position = Current->GetPosition();
-										Box_size.x -= 80;
-										Highlighted_box.setSize(Box_size);
-										Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
-										highlighted_columns--;
-										up_or_left = true;
-									}
-									else if (Current->GetColor() == Color::White)
-									{
-										temp = Current;
-										Box_size.x += 80;
-										ChangeColumnColor(Is_down, temp, transparentGrey);
-										temp = temp->down;
-										if (Is_down)
-											Curr_position = temp->GetPosition();
-										else
-											Curr_position = Current->GetPosition();
-
-										Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
-
-										Highlighted_box.setSize(Box_size);
-										is_right = false;
-										up_or_left = true;
-										highlighted_columns++;
-									}
-									else if (Current->GetColor() == transparentGrey)
-									{
-										temp = Current->right;
-										ChangeColumnColor(Is_down, temp, Color::White);
-										Box_size.x -= 80;
-										Highlighted_box.setSize(Box_size);
-										up_or_left = true;
-										is_right = true;
-										highlighted_columns--;
-									}
-
-								}
-
 							}
 						}
 						else
 						{
-							Unhighlightselecteddata();
-							Highlighted_box.setSize(Vector2f(79, 24));
-							if (evnt.key.code == sf::Keyboard::Down)
+							if((Current))
 							{
-								if (T->down)	T = T->down;
+								if (evnt.type == sf::Event::TextEntered)
+								{
+									if (evnt.text.unicode < 128)
+									{
+										if (evnt.text.unicode == 8)
+										{
+											if (!Query.empty())
+											{
+												Query.pop_back();
+											}
+										}
+										else if (evnt.text.unicode != 8)
+										{
+
+											Query += static_cast<char>(evnt.text.unicode);
+										}
+										function.setString(Query);
+									}
+								}
 							}
-							if (evnt.key.code == sf::Keyboard::Up)
-								if (T->up)	T = T->up;
-							if (evnt.key.code == sf::Keyboard::Left)
-								if (T->left)	T = T->left;
-							if (evnt.key.code == sf::Keyboard::Right)
-								if (T->right)T = T->right;
-							Prev = Current = T;
+
+
 						}
 					
-						StoreHighlightedCells(Is_down, is_right);
+					
+					
 					}
-					if (evnt.type == sf::Event::MouseButtonPressed && evnt.mouseButton.button == sf::Mouse::Right)
+					if (evnt.type == sf::Event::KeyPressed)
 					{
-						if (T)
+
+						if ((evnt.key.code == sf::Keyboard::Enter))
 						{
-							int option = DisplayOptions(T->GetPosition().x+30, T->GetPosition().y+60);
-							if (option == 1)
-								InsertCellAtLeft(T);
+
+							Current->Data=CalculateRange(Query);
 							
-							else if (option == 2)
+							Query_entering = false;
+						}
+						else
+						{
+							if (evnt.key.control)
 							{
-								EraseColumn(T);
+
+								if (evnt.key.code == sf::Keyboard::C)
+								{
+									selected_cells.clear();
+									CopyData(Is_down, is_right);
+								}
+								else if (evnt.key.code == sf::Keyboard::X)
+								{
+									selected_cells.clear();
+
+									CopyData(Is_down, is_right);
+									for (int i = 0; i < selected_cells.size(); i++)
+									{
+										selected_cells[i]->Data = "";
+									}
+								}
+								else if (evnt.key.code == sf::Keyboard::V)
+								{
+									Node* Temp_prev = Current;
+									Node* Temp_curr = Current;
+									if (is_right && Is_down)
+									{
+										for (int i = 0; i < Copy.size(); i++)
+										{
+											for (int j = 0; j < Copy[i].size(); j++)
+											{
+												if (Temp_curr)
+												{
+													Temp_curr->Data = Copy[i][j];
+													Temp_curr = Temp_curr->right;
+												}
+											}
+											if (!Temp_prev->down)break;
+											Temp_prev = Temp_prev->down;
+											Temp_curr = Temp_prev;
+										}
+									}
+									if (is_right && !Is_down)
+									{
+										for (int i = 0; i < Copy.size(); i++)
+										{
+											for (int j = 0; j < Copy[i].size(); j++)
+											{
+												if (Temp_curr)
+												{
+													Temp_curr->Data = Copy[i][j];
+													Temp_curr = Temp_curr->right;
+												}
+											}
+											if (!Temp_prev->up)break;
+											Temp_prev = Temp_prev->up;
+											Temp_curr = Temp_prev;
+										}
+									}
+									if (!is_right && Is_down)
+									{
+										for (int i = 0; i < Copy.size(); i++)
+										{
+											for (int j = 0; j < Copy[i].size(); j++)
+											{
+												if (Temp_curr)
+												{
+													Temp_curr->Data = Copy[i][j];
+													Temp_curr = Temp_curr->left;
+												}
+											}
+											if (!Temp_prev->down)break;
+											Temp_prev = Temp_prev->down;
+											Temp_curr = Temp_prev;
+										}
+									}
+									if (!is_right && !Is_down)
+									{
+										for (int i = 0; i < Copy.size(); i++)
+										{
+											for (int j = 0; j < Copy[i].size(); j++)
+											{
+												if (Temp_curr)
+												{
+													Temp_curr->Data = Copy[i][j];
+													Temp_curr = Temp_curr->left;
+												}
+											}
+											if (!Temp_prev->up)break;
+											Temp_prev = Temp_prev->up;
+											Temp_curr = Temp_prev;
+										}
+									}
+
+									Unhighlightselecteddata();
+
+								}
 							}
+							else if (evnt.key.shift)
+							{
+
+								if (evnt.key.code == sf::Keyboard::Down)
+								{
+
+									Is_down = false;
+									Vector2f Box_size = Highlighted_box.getSize();
+									if (Current && Current->down)
+									{
+										Current = Current->down;
+										Node* temp = Current;
+										if (HasSameRow(temp, Prev, is_right))
+										{
+											temp = Current->up;
+											ChangeRowColor(is_right, temp, Color::White);
+											if (is_right)
+												Curr_position = Prev->GetPosition();
+											else
+												Curr_position = Current->GetPosition();
+											Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
+											Box_size.y -= 25;
+											Highlighted_box.setSize(Box_size);
+											up_or_left = true;
+											highlighted_rows--;
+
+										}
+										else if (Current->GetColor() == Color::White)
+										{
+											temp = Current;
+											ChangeRowColor(is_right, temp, transparentGrey);
+											Box_size.y += 25;
+											Highlighted_box.setSize(Box_size);
+											Is_down = true;
+											highlighted_rows++;
+										}
+										else if (Current->GetColor() == transparentGrey)
+										{
+											temp = Current->up;
+											Box_size.y -= 25;
+											ChangeRowColor(is_right, temp, Color::White);
+											temp = temp->down;
+											if (is_right)
+												Curr_position = temp->right->GetPosition();
+											else
+												Curr_position = Current->GetPosition();
+
+											Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
+											Highlighted_box.setSize(Box_size);
+											up_or_left = true;
+											Is_down = false;
+											highlighted_rows--;
+										}
+
+									}
+								}
+								else if (evnt.key.code == sf::Keyboard::Up)
+								{
+									Is_down = false;
+
+									Vector2f Box_size = Highlighted_box.getSize();
+									if (Current && Current->up)
+									{
+										Current = Current->up;
+										Node* temp = Current;
+										if (HasSameRow(temp, Prev, is_right))
+										{
+											temp = Current->down;
+											ChangeRowColor(is_right, temp, Color::White);
+											if (is_right)
+												Curr_position = Prev->GetPosition();
+											else
+												Curr_position = Current->GetPosition();
+											Box_size.y -= 25;
+											Highlighted_box.setSize(Box_size);
+
+											Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
+											up_or_left = true;
+											highlighted_rows--;
+										}
+										else if (Current->GetColor() == Color::White)
+										{
+											temp = Current;
+											ChangeRowColor(is_right, temp, transparentGrey);
+											Box_size.y += 25;
+											Highlighted_box.setSize(Box_size);
+											if (is_right)
+												Curr_position = temp->right->GetPosition();
+											else
+												Curr_position = Current->GetPosition();
+
+											Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
+											Is_down = false;
+											up_or_left = true;
+											highlighted_rows++;
+										}
+										else if (Current->GetColor() == transparentGrey)
+										{
+											temp = Current->down;
+											ChangeRowColor(is_right, temp, Color::White);
+											Box_size.y -= 25;
+											Highlighted_box.setSize(Box_size);
+											up_or_left = true;
+											Is_down = true;
+											highlighted_rows--;
+										}
+
+									}
+								}
+								else if (evnt.key.code == sf::Keyboard::Right)
+								{
+									is_right = false;
+
+									Vector2f Box_size = Highlighted_box.getSize();
+									if (Current && Current->right)
+									{
+										Current = Current->right;
+										Node* temp = Current;
+										if (HasSameCol(temp, Prev, Is_down))
+										{
+											temp = Current->left;
+											ChangeColumnColor(Is_down, temp, Color::White);
+											if (Is_down)
+												Curr_position = Prev->GetPosition();
+											else
+												Curr_position = Current->GetPosition();
+											Box_size.x -= 80;
+											Highlighted_box.setSize(Box_size);
+
+											Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
+											up_or_left = true;
+											highlighted_columns--;
+										}
+										else if (Current->GetColor() == Color::White)
+										{
+											temp = Current;
+											ChangeColumnColor(Is_down, temp, transparentGrey);
+											Box_size.x += 80;
+											Highlighted_box.setSize(Box_size);
+											is_right = true;;
+											up_or_left = true;
+											highlighted_columns++;
+										}
+										else if (Current->GetColor() == transparentGrey)
+										{
+											temp = Current->left;
+											ChangeColumnColor(Is_down, temp, Color::White);
+											Box_size.x -= 80;
+											Highlighted_box.setSize(Box_size);
+											temp = temp->down;
+											if (Is_down)
+												Curr_position = temp->right->GetPosition();
+											else
+												Curr_position = Current->GetPosition();
+
+											Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
+											up_or_left = true;
+											is_right = false;
+											highlighted_columns--;
+										}
+
+									}
+
+								}
+								else if (evnt.key.code == sf::Keyboard::Left)
+								{
+									is_right = false;
+
+									Vector2f Box_size = Highlighted_box.getSize();
+									if (Current && Current->left)
+									{
+										Current = Current->left;
+										Node* temp = Current;
+										if (HasSameCol(temp, Prev, Is_down))
+										{
+											temp = Current->right;
+											ChangeColumnColor(Is_down, temp, Color::White);
+											if (Is_down)
+												Curr_position = Prev->GetPosition();
+											else
+												Curr_position = Current->GetPosition();
+											Box_size.x -= 80;
+											Highlighted_box.setSize(Box_size);
+											Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
+											highlighted_columns--;
+											up_or_left = true;
+										}
+										else if (Current->GetColor() == Color::White)
+										{
+											temp = Current;
+											Box_size.x += 80;
+											ChangeColumnColor(Is_down, temp, transparentGrey);
+											temp = temp->down;
+											if (Is_down)
+												Curr_position = temp->GetPosition();
+											else
+												Curr_position = Current->GetPosition();
+
+											Highlighted_box.setPosition(Vector2f(Curr_position.x, Curr_position.y));
+
+											Highlighted_box.setSize(Box_size);
+											is_right = false;
+											up_or_left = true;
+											highlighted_columns++;
+										}
+										else if (Current->GetColor() == transparentGrey)
+										{
+											temp = Current->right;
+											ChangeColumnColor(Is_down, temp, Color::White);
+											Box_size.x -= 80;
+											Highlighted_box.setSize(Box_size);
+											up_or_left = true;
+											is_right = true;
+											highlighted_columns--;
+										}
+
+									}
+
+								}
+							}
+							else
+							{
+								Unhighlightselecteddata();
+								Highlighted_box.setSize(Vector2f(79, 24));
+								if (evnt.key.code == sf::Keyboard::Down)
+								{
+									if (T->down)	T = T->down;
+								}
+								if (evnt.key.code == sf::Keyboard::Up)
+									if (T->up)	T = T->up;
+								if (evnt.key.code == sf::Keyboard::Left)
+									if (T->left)	T = T->left;
+								if (evnt.key.code == sf::Keyboard::Right)
+									if (T->right)T = T->right;
+								Prev = Current = T;
+							}
+							StoreHighlightedCells(Is_down, is_right);
 						}
 					}
-				}
-				//if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) 
+
+					if (evnt.type == sf::Event::MouseButtonPressed && evnt.mouseButton.button == sf::Mouse::Right)
+					{
+						isContextMenuVisible = true;
+						contextMenuPosition = sf::Vector2f(evnt.mouseButton.x, evnt.mouseButton.y);
+					}
+
+					if (evnt.type == sf::Event::MouseButtonPressed && evnt.mouseButton.button == sf::Mouse::Left)
+					{
+						mouseWorldPosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+						if (insertRange.getGlobalBounds().contains(mouseWorldPosition.x, mouseWorldPosition.y))
+							Query_entering = true;
+					}
+					
+					//if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) 
 				//{
 				//	 mouseWorldPosition = window.mapPixelToCoords(sf::Mouse::getPosition(window), view);
 				//	int height_of_cell = 25;
@@ -1388,9 +1686,9 @@ public:
 				//	int y = (mouseWorldPosition.y - top_margin) / height_of_cell; // Use y here, not x
 				//	T = GetNodeAt(y, x);
 
-				//}
+				}
 
-				sf::Vector2f mousePosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+					sf::Vector2f mousePosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
 
 				 if (evnt.type == evnt.MouseButtonPressed) 
 				 {
@@ -1418,8 +1716,66 @@ public:
 						 // Move the horizontal thumb along the x-axis
 						 horizontalThumb.setPosition(evnt.mouseMove.x - horizontalThumb.getSize().x / 2, 676);
 					 }
-			}
+					if(T)
+					{
+					
+						sf::Vector2f mousePosition3 = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+						if (Insert_RB.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y)))
+							Insert_RB.setFillColor(greyColor);
+						
+						else
+							Insert_RB.setFillColor(Color::Black);
 
+						  if (Insert_RA.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y))) 
+							Insert_RA.setFillColor(greyColor);
+						 
+						  else
+						  Insert_RA.setFillColor(Color::Black);						
+						  if (ClearRow.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y))) 
+						 	ClearRow.setFillColor(greyColor);
+						  else
+							  ClearRow.setFillColor(Color::Black);
+						  
+						  if (Insert_CB.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y)))
+						
+							Insert_CB.setFillColor(greyColor);
+						
+						else
+							Insert_CB.setFillColor(Color::Black);
+
+						  if (Insert_CA.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y))) 
+							Insert_CA.setFillColor(greyColor);
+						  else
+						  Insert_CA.setFillColor(Color::Black);
+						  if (ClearColumn.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y))) 
+							  ClearColumn.setFillColor(greyColor);
+						  else
+							  ClearColumn.setFillColor(Color::Black);
+
+						  if (InsertCell_L.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y)))
+							  InsertCell_L.setFillColor(greyColor);
+						  else
+							  InsertCell_L.setFillColor(Color::Black);
+						  if (InsertCell_R.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y)))
+							  InsertCell_R.setFillColor(greyColor);
+						  else
+							  InsertCell_R.setFillColor(Color::Black);
+						  if (Delete_Row.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y)))
+							  Delete_Row.setFillColor(greyColor);
+						  else
+							  Delete_Row.setFillColor(Color::Black);
+						  if (Delete_Col.getGlobalBounds().contains(sf::Vector2f(mousePosition3.x, mousePosition3.y)))
+							  Delete_Col.setFillColor(greyColor);
+						  else
+							  Delete_Col.setFillColor(Color::Black);
+
+					 
+					}
+
+				 }
+
+
+				
 
 				 verticalOffset = (verticalThumb.getPosition().y + 10) / ((verticalScrollBar.getSize().y-500) - verticalThumb.getSize().y);
 				 // Calculate the horizontal offset for scrolling
@@ -1442,11 +1798,54 @@ public:
 				window.draw(Nav);
 				window.draw(insertRange);
 				window.draw(Fx);
+				window.draw(function);
 				window.draw(indexSep);
 				window.draw(verticalScrollBar);
 				window.draw(horizontalScrollBar);
 				window.draw(verticalThumb);
 				window.draw(horizontalThumb);
+				if (isContextMenuVisible&&T) {
+					sf::RectangleShape contextMenuBackground(sf::Vector2f(120, 220));
+					contextMenuBackground.setPosition(contextMenuPosition);
+					contextMenuBackground.setFillColor(Color::White);
+					contextMenuBackground.setOutlineColor(greyColor);
+					contextMenuBackground.setOutlineThickness(1);
+					
+					Insert_RB.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 10);
+					Insert_RA.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 30);
+					ClearRow.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 50);
+					Insert_CB.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 70);
+					Insert_CA.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 90);
+					ClearColumn.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 110);
+					InsertCell_L.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 130);
+					InsertCell_R.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 150);
+					Delete_Row.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 170);
+					Delete_Col.setPosition(contextMenuPosition.x + 10, contextMenuPosition.y + 190);
+					window.draw(contextMenuBackground);
+					window.draw(Insert_RB);
+					window.draw(Insert_RA);
+					window.draw(ClearRow);
+					window.draw(Insert_CB);
+					window.draw(Insert_CA);
+					window.draw(ClearColumn);
+					window.draw(InsertCell_L);
+					window.draw(InsertCell_R);
+					window.draw(Delete_Row);
+					window.draw(Delete_Col);
+				}
+				else
+				{
+					Insert_RB.setPosition(-100,-100);
+					Insert_RA.setPosition(-100, -100);
+					ClearRow.setPosition(-100, -100);
+					Insert_CB.setPosition(-100, -100);
+					Insert_CA.setPosition(-100, -100);
+					ClearColumn.setPosition(-100, -100);
+					InsertCell_L.setPosition(-100, -100);
+					InsertCell_R.setPosition(-100, -100);
+					Delete_Row.setPosition(-100, -100);
+					Delete_Col.setPosition(-100, -100);
+				}
 				window.display();
 			}	
 	}
