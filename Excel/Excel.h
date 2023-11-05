@@ -508,70 +508,32 @@ public:
 		TopIndexTail = TopIndexTail->right;
 		no_of_cols++;
 	}
-	int DisplayOptions(int Pos_x,int Pos_y)
+	void Starting()
 	{
-		sf::RenderWindow window(sf::VideoMode(150, 200), "options", sf::Style::Close);
-		RectangleShape highlighter;
+		sf::RenderWindow window(sf::VideoMode(500, 400), "Starting", sf::Style::Close);
+		window.setPosition(Vector2i(500, 200));
 		Font TimesRoman2 = TimesRoman;
 		sf::Color transparentGrey(192, 192, 192, 128);
 		Color Gray(160, 160, 160, 255);
-		highlighter.setSize(Vector2f(150, 20));
-		highlighter.setFillColor(Color(0,0,0,0));
-		Text insert_below;
-		insert_below.setFont(TimesRoman2);
-		insert_below.setPosition(5, 3);
-		insert_below.setCharacterSize(15);
-		insert_below.setString("Insert row below");
-		insert_below.setFillColor(Color::Black);
-		Text insert_above;
-		insert_above.setFont(TimesRoman2);
-		insert_above.setPosition(5, 25);
-		insert_above.setCharacterSize(15);
-		insert_above.setString("Insert row above");
-		insert_above.setFillColor(Color::Black);
-		Vector2i mouse_pos;
-			window.setPosition(sf::Vector2i(Pos_x, Pos_y));
+		Text Excel;
+		Excel.setFont(TimesRoman2);
+		Excel.setCharacterSize(60);
+		Excel.setPosition(150, 150);
+		Excel.setString("EXCEL");
+		int i = 0;
+		
 			while (window.isOpen()) 
 			{
 				sf::Event evnt;
-				window.clear(Color::White);
+				window.clear((Color(0, 130, 0)));
 				while (window.pollEvent(evnt)) 
 				{
-					mouse_pos = sf::Mouse::getPosition(window);
 					if (evnt.type == sf::Event::Closed)
-						window.close();
-					else if (evnt.type == sf::Event::MouseButtonPressed && evnt.mouseButton.button == sf::Mouse::Left)
-					{
-						if (insert_below.getGlobalBounds().contains(mouse_pos.x, mouse_pos.y))
-							return 1;
-						if (insert_above.getGlobalBounds().contains(mouse_pos.x, mouse_pos.y))
-							return 2;
-					}
-
-				
+						window.close();				
 				}
-				if (insert_below.getGlobalBounds().contains(mouse_pos.x, mouse_pos.y))
-				{
-					highlighter.setPosition(0, 3);
-					highlighter.setFillColor(transparentGrey);
-					highlighter.setOutlineColor(Gray);
-				}
-				else if (insert_above.getGlobalBounds().contains(mouse_pos.x, mouse_pos.y))
-				{
-					highlighter.setPosition(0, 25);
-					highlighter.setFillColor(transparentGrey);
-					highlighter.setOutlineColor(Gray);
-				}
-				else
-				{
-					insert_below.setFillColor(Color::Black);
-					highlighter.setFillColor(Color(0, 0, 0, 0));
-					highlighter.setOutlineColor(Color::White);
-				}
-
-				window.draw(highlighter);
-				window.draw(insert_below);
-				window.draw(insert_above);
+				i++;
+				if (i == 5000)return;
+				window.draw(Excel);
 				window.display();
 
 			}

@@ -7,9 +7,10 @@ using namespace std;
 int main()
 {
 	Excel* excl = new Excel();
-	
+    excl->Starting();
 	try
 	{
+
 	excl->LaunchExcel();
 
 	}
