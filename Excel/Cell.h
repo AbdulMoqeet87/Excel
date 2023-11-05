@@ -9,7 +9,7 @@ class Node
 {
 
 	sf::RectangleShape cell;
-	Font TimesRoman;
+	Font _TimesRoman;
 	Text Txt;
 
 public:
@@ -43,16 +43,20 @@ public:
 
 	}
 	
-	void DrawCell(int ri, int ci, RenderWindow& window,int horizontalOffset,int verticalOffset)
+	void DrawCell(int y, int x, RenderWindow& window,int horizontalOffset,int verticalOffset,sf::Font TimesRoman)
 	{
-	
+		if (!Txt.getFont())
+		{
+			_TimesRoman = TimesRoman;
+			Txt.setFont(_TimesRoman);
+		}
 		cell.setSize(Vector2f(80, 25));
-		cell.setPosition(ci , ri);
+		cell.setPosition(x, y);
 		Txt.setString(Data);
-		Txt.setPosition(static_cast<long long int> (ci)+25 - (Data.length()) - 5, ri + 3);
+		Txt.setPosition(x+40/2-Data.length()-2, y+3/2);
 	
-		cell.move(-horizontalOffset * 200, -verticalOffset * 400);
-		Txt.move(-horizontalOffset * 200, -verticalOffset * 400);
+		cell.move(-horizontalOffset * 70, -verticalOffset * 20);
+		Txt.move(-horizontalOffset * 70, -verticalOffset * 20);
 		window.draw(cell);
 		window.draw(Txt);
 	}
@@ -77,8 +81,9 @@ public:
 	}
 	Node(string D = "-", Node* _u = nullptr, Node* _d = nullptr, Node* _l = nullptr, Node* _r = nullptr) :Data(D), up(_u), down(_d), left(_l), right(_r)
 	{
-		TimesRoman.loadFromFile("Lato.ttf");
-		Txt.setFont(TimesRoman);
+		row = 0; col = 0;
+		//TimesRoman.loadFromFile("Lato.ttf");
+	//	Txt.setFont(TimesRoman);
 		Txt.setCharacterSize(15);
 		Txt.setFillColor(Color::Black);
 		cell.setFillColor(Color::White);

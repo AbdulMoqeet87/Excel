@@ -4,14 +4,73 @@
 #include<string>
 #include<vector>
 #include<SFML/Graphics.hpp>
+#include<string>
 using namespace sf;
 using namespace std;
 
 class Excel
 {
+	struct IndexCell
+	{
+		
+		RectangleShape Cell;
+		string Index;
+		IndexCell* up;
+		IndexCell* down;
+		IndexCell* left;
+		IndexCell* right;
+		Text Str;
+		Font romanT;
+
+		IndexCell(string idx, IndexCell* _up = nullptr, IndexCell* _down = nullptr,  IndexCell* _left = nullptr,  IndexCell* _right = nullptr):up(_up),down(_down),left(_left),right(_right)
+		{
+			Str.setCharacterSize(15);
+			Str.setFillColor(Color::Black);
+			Cell.setFillColor(Color::White);
+			Cell.setOutlineThickness(1);
+			Cell.setOutlineColor(Color(135, 135, 135));
+			Index = idx;
+			sf::Color veryLightGrey(200, 200, 200);
+			Cell.setFillColor(veryLightGrey);
+			Str.setString(Index);
+		}
+
+		void setsize(int x,int y)
+		{
+			Cell.setSize(Vector2f(x, y));
+		}
+		void SetColor(sf::Color C)
+		{
+			Cell.setFillColor(C);
+		}
+		void SetString(string S)
+		{
+			Index = S;
+		}
+		void DrawIndexCell(int x, int y,sf::Font TimeRom,Vector2f Size,RenderWindow & window)
+		{
+			if (!Str.getFont())
+			{
+				romanT = TimeRom;
+				Str.setFont(romanT);
+			}
+			Cell.setPosition(x, y);
+			Cell.setSize(Size);
+			Str.setPosition(x + Size.x / 2 - (Index.length() + 2), y + 2);
+			window.draw(this->Cell);
+			window.draw(Str);
+		}
+
+
+
+	};
 	Node* head;
 	Node* Current;
 	Node* Prev;
+	IndexCell* LeftIndexHead;
+	IndexCell* TopIndexHead;
+	IndexCell* LeftIndexTail;
+	IndexCell* TopIndexTail;
 	int no_of_rows;
 	int no_of_cols;
 	int left_margin;
@@ -22,17 +81,20 @@ class Excel
 	int highlighted_rows;
 	int highlighted_columns;
 	Font TimesRoman;
+
 public:
 	Excel()
 	{
 		head = new Node("");
+		Prev = {};
+		Current = {};
 		left_margin = 0;
 		top_margin = 20;
 		Node* temp = head;
 		highlighted_rows = 1;
 		highlighted_columns = 1;
 		hr = 1, hc = 1;
-		for (int i = 1; i < 20; i++)
+		for (int i = 1; i < 10; i++)
 		{
 			temp->right = new Node("", nullptr, nullptr, temp, nullptr);
 			temp = temp->right;
@@ -41,48 +103,96 @@ public:
 		Node* DownHead = head->down;
 		Node* D_temp = head->down;
 		temp = head->right;
-		for (int i = 1; i < 35; i++)
+		for (int i = 1; i < 10; i++)
 		{
-			for (int j = 1; j < 20; j++)
+			for (int j = 1; j < 10; j++)
 			{
 				D_temp->right = new Node("", temp, nullptr, D_temp, nullptr);
 				temp->down = D_temp->right;
 				D_temp = D_temp->right;
 				temp = temp->right;
 			}
-			if (i == 34)break;
+			if (i == 9)break;
 			temp = DownHead->right;
 			DownHead->down = new Node("", DownHead);
 			DownHead = DownHead->down;
 			D_temp = DownHead;	
 		}
-		no_of_rows = 35;
-		no_of_cols = 20;
+		no_of_rows = 10;
+		no_of_cols = 10;
+		LeftIndexHead= new IndexCell("1",nullptr,nullptr,nullptr,nullptr);
+		TopIndexHead= new IndexCell("A",nullptr,nullptr,nullptr,nullptr);
+		LeftIndexTail = LeftIndexHead;
+		TopIndexTail = TopIndexHead;
+		
+		
+		
+		for (int i = 1; i < no_of_cols; i++)
+		{
+			char c = char(i+65);
+			string s;
+			s.append(1, c);
+			TopIndexTail->right = new IndexCell(s, nullptr, nullptr, TopIndexTail, nullptr);
+			TopIndexTail = TopIndexTail->right;
+		}
+		for (int i = 1; i < no_of_rows; i++)
+		{
+			LeftIndexTail->down = new IndexCell(to_string(0+i+1), LeftIndexTail, nullptr, nullptr, nullptr);
+			LeftIndexTail = LeftIndexTail->down;
+		}
+
+
+
 		TimesRoman.loadFromFile("TimesRoman.ttf");
 
 	}
-
 	void DrawGrid(RenderWindow &window,int horizontalOffset,int verticalOffset)
 	{
-		//rect.move(-horizontalOffset * 200, -verticalOffset * 400);
+		
 		Node* DownHead = head;
 		Node* RightHead= head;
-		for (int ri=20; DownHead;ri+=25)
+		for (int ri=100; DownHead;ri+=25)
 		{
-			for (int ci=0; RightHead;ci+=80)
+			for (int ci=30; RightHead;ci+=80)
 			{
-			RightHead->DrawCell(ri, ci, window, horizontalOffset, verticalOffset);
-
-				
+				RightHead->DrawCell(ri, ci, window, horizontalOffset, verticalOffset, TimesRoman);
+			
 				RightHead = RightHead->right;
 			}
 			DownHead=DownHead->down;
 			RightHead = DownHead;
 		}
-	
+		
+
+
+
+
 		
 	}
+	void DrawIndexes(RenderWindow& window)
+	{
+		Vector2f left_index_start(30,head->GetPosition().y);
+		left_index_start.x -= 30;
+		Vector2f Top_index_start(head->GetPosition().x, 100);
+		Top_index_start.y -= 26;
 
+		IndexCell* LH = LeftIndexHead;
+		IndexCell* TH = TopIndexHead;
+		Vector2f Lsize(30, 24);
+		Vector2f Tsize(80, 25);
+
+		for (int x = left_index_start.x, y = left_index_start.y; LH; y += 25)
+		{
+			LH->DrawIndexCell(x, y, TimesRoman, Lsize, window);
+			LH = LH->down;
+		}
+
+		for (int x = Top_index_start.x, y = Top_index_start.y; TH; x += 80)
+		{
+			TH->DrawIndexCell(x, y, TimesRoman, Tsize, window);
+			TH = TH->right;
+		}
+	}
 	void InsertData(string A,int ri,int ci)
 	{
 
@@ -98,22 +208,113 @@ public:
 		}
 		T->Data = A;
 	}
-
-	void InsertRowBelow(int row_index)
+	void delete_Row(Node* temp)
 	{
-		if (row_index <= 0 || row_index > no_of_rows)return;
-		if (row_index == no_of_rows)
+		if (!temp)return;
+		while (temp->left)
+		{
+			temp = temp->left;
+		}
+		Node* current = temp;
+		Node* above = temp->up;
+		Node* below = temp->down;
+
+		while (current)
+		{
+			above->down = below;			
+			below->up = above;
+			Node* t = current;
+			current = current->right;
+			delete t;
+			above = above->right;
+			below = below->right;
+		}
+		no_of_rows--;
+
+		IndexCell* tail = LeftIndexTail;
+		LeftIndexTail = LeftIndexTail->up;
+		LeftIndexTail->down = nullptr;
+		delete tail;
+
+	}
+	void delete_column(Node* temp)
+	{
+		if (!temp)return;
+
+		while (temp->up)
+			temp = temp->up;
+
+		Node* current = temp;
+		Node* Left = temp->left;
+		Node* Right = temp->right;
+
+		while (current)
+		{
+			Left->right = Right;
+			Right->left = Left;
+			Node* c = current;
+			current = current->down;
+			Left = Left->down;
+			Right = Right->down;
+			delete c;
+		}
+
+		IndexCell* a = TopIndexTail;
+		TopIndexTail = TopIndexTail->left;
+		TopIndexTail->right = nullptr;
+		delete a;
+
+		no_of_cols--;
+
+	}
+	void EraseRow(Node* temp)
+	{
+		if (!temp)return;
+		while (temp->left)
+		{
+			temp = temp->left;
+		}
+		Node* current = temp;
+		
+		while (current)
+		{
+			current->Data = "";
+			current = current->right;
+		}
+	}
+	void EraseColumn(Node* temp)
+	{
+		if (!temp)return;
+		while (temp->up)
+		{
+			temp = temp->up;
+		}
+		Node* current = temp;
+
+		while (current)
+		{
+			current->Data = "";
+			current = current->down;
+		}
+	}
+	
+
+
+	void InsertRowBelow(Node*temp)
+	{
+		if (!temp)return;
+		if (temp&&!temp->down)
 		{
 			InsertRowATBottom();
 			return;
 		}
 		
-		Node* current =head;
-
-		for (int i = 0; i <row_index; i++)
+		Node* current =temp->down;
+		while (current->left)
 		{
-			current = current->down;
+			current = current->left;
 		}
+
 		Node* _down = current;
 		Node* _up = current->up;
 		current= new Node("", _up, _down);
@@ -131,6 +332,11 @@ public:
 			_down = _down->right;
 			current = current->right;
 		}
+		int index = stoi(LeftIndexTail->Index);
+		index++;
+		string S = to_string(index);
+		LeftIndexTail->down = new IndexCell(S, LeftIndexTail);
+		LeftIndexTail = LeftIndexTail->down;
 		no_of_rows++;
 	}
 	void InsertRowAtTop()
@@ -139,7 +345,7 @@ public:
 
 		Node* _down = current;
 
-		current = new Node("n", nullptr, _down);
+		current = new Node("", nullptr, _down);
 		head = current;
 		_down->up = current;
 		_down = _down->right;
@@ -151,16 +357,22 @@ public:
 			_down = _down->right;
 			current = current->right;
 		}
+		int index = stoi(LeftIndexTail->Index);
+		index++;
+		string S = to_string(index);
+		LeftIndexTail->down = new IndexCell(S, LeftIndexTail);
+		LeftIndexTail = LeftIndexTail->down;
+		no_of_rows++;
 		no_of_rows++;
 	}	
-	void InsertRowAbove(int row_index)
+	void InsertRowAbove(Node*temp)
 	{
-		if (row_index > no_of_rows)return;
-		if (row_index == 1)
+		if (!temp)return;
+		if (temp&&!temp->up)
 		{
 			InsertRowAtTop(); return;
 		}
-		InsertRowBelow(row_index - 1);
+		InsertRowBelow(temp->up);
 	}
 	void InsertRowATBottom()
 	{
@@ -173,7 +385,7 @@ public:
 			_up = current;
 			current = current->down;
 		}
-		current = new Node("n", _up);
+		current = new Node("", _up);
 		_up->down = current;
 		_up = _up->right;
 
@@ -185,19 +397,24 @@ public:
 			_up = _up->right;
 			current = current->right;
 		}
-
+		int index = stoi(LeftIndexTail->Index);
+		index++;
+		string S = to_string(index);
+		LeftIndexTail->down = new IndexCell(S, LeftIndexTail);
+		LeftIndexTail = LeftIndexTail->down;
+		no_of_rows++;
 		no_of_rows++;
 	}
 
-	void InsertColumnAtLeft(int col_index)
+	void InsertColumnAtLeft(Node* temp)
 	{
-		if (col_index > no_of_cols)return;
-		if (col_index == 1)
+		if (!temp)return;
+		if (temp&&!temp->left)
 		{
 			InsertColumnAtStart();
 			return;
 		}
-		InsertColumnAtRight(col_index - 1);
+		InsertColumnAtRight(temp->left);
 	}
 	void InsertColumnAtStart()
 	{
@@ -216,6 +433,12 @@ public:
 			_right = _right->down;		
 			current = current->down;
 		}
+		char C = (TopIndexTail->Index[0]);
+		C += 1;
+		string S;
+		S.append(1, C);
+		TopIndexTail->right = new IndexCell(S, nullptr, nullptr, TopIndexTail, nullptr);
+		TopIndexTail = TopIndexTail->right;
 		no_of_cols++;
 	}
 	void InsertColumnAtEnd()
@@ -238,6 +461,12 @@ public:
 			_left = _left->down;
 			current = current->down;
 		}
+		char C = (TopIndexTail->Index[0]);
+		C += 1;
+		string S;
+		S.append(1, C);
+		TopIndexTail->right = new IndexCell(S, nullptr, nullptr, TopIndexTail, nullptr);
+		TopIndexTail = TopIndexTail->right;
 		no_of_cols++;
 	}
 	Node*& GetNodeAt(int ri, int ci)
@@ -255,23 +484,22 @@ public:
 		}
 		return T;
 	}
-	void InsertColumnAtRight(int col_index)
+	void InsertColumnAtRight(Node*temp)
 	{
-		if ( col_index<= 0 || col_index > no_of_cols)return;
-		if (col_index == no_of_cols)
+		if ( !temp)return;
+		if (temp&&!temp->right)
 		{
 			InsertColumnAtEnd();		
 			return;
 		}
-		Node* current = head;
-
-		for (int i = 0; i <col_index; i++)
+		while (temp->up)
 		{
-			current = current->right;
+			temp = temp->up;
 		}
+		Node* current = temp;
 		Node* _left= current->left;
 		Node* _right= current;
-		current = new Node("n", nullptr, nullptr,_left,_right);
+		current = new Node("", nullptr, nullptr,_left,_right);
 		_left->right = current;
 		_right->left = current;
 		_left= _left->down;
@@ -286,24 +514,32 @@ public:
 			_right = _right->down;		
 			current = current->down;
 		}
+		char C=(TopIndexTail->Index[0]);
+		C += 1;
+		string S;
+		S.append(1, C);
+		TopIndexTail->right = new IndexCell(S, nullptr, nullptr, TopIndexTail, nullptr);
+		TopIndexTail = TopIndexTail->right;
 		no_of_cols++;
 	}
+
 	int DisplayOptions(int Pos_x,int Pos_y)
 	{
 		sf::RenderWindow window(sf::VideoMode(150, 200), "options", sf::Style::Close);
 		RectangleShape highlighter;
+		Font TimesRoman2 = TimesRoman;
 		sf::Color transparentGrey(192, 192, 192, 128);
 		Color Gray(160, 160, 160, 255);
 		highlighter.setSize(Vector2f(150, 20));
 		highlighter.setFillColor(Color(0,0,0,0));
 		Text insert_below;
-		insert_below.setFont(TimesRoman);
+		insert_below.setFont(TimesRoman2);
 		insert_below.setPosition(5, 3);
 		insert_below.setCharacterSize(15);
 		insert_below.setString("Insert row below");
 		insert_below.setFillColor(Color::Black);
 		Text insert_above;
-		insert_above.setFont(TimesRoman);
+		insert_above.setFont(TimesRoman2);
 		insert_above.setPosition(5, 25);
 		insert_above.setCharacterSize(15);
 		insert_above.setString("Insert row above");
@@ -594,20 +830,112 @@ public:
 			selected_cells[i]->Setcolor(Color::White);
 		}
 	}
+	void FindClickedCell(Node*& T, Vector2f mouseWorldPosition)
+	{
+		bool found = false;
+		Node* DownHead = head;
+		Node* RightHead = head;
+		while (DownHead)
+		{
+			while (RightHead)
+			{
+				if (RightHead->Contains(mouseWorldPosition.x, mouseWorldPosition.y))
+				{
+					T = RightHead;
+					found = true;
+					break;
+				}
+				if (found)break;
+				RightHead = RightHead->right;
+			}
+			DownHead = DownHead->down;
+			RightHead = DownHead;
+		}
+
+	}
+	void InsertCellAtLeft(Node* temp)
+	{
+		if (!temp)return;
+		InsertColumnAtEnd();
+		Node* Tr = temp;
+		Node* prev = temp->left;
+		while (Tr->right)
+		{
+			Tr = Tr->right;
+		}
+		if (prev)
+			prev->right = Tr;
+
+		Tr->left->right = nullptr;;
+		Tr->left = prev;
+		Tr->right = temp;
+		Node* Tup = Tr->up;
+		Node* Tdown = Tr->down;
+		
+		temp->left = Tr;
+		while (temp->right)
+		{
+			Tr->up = temp->up;
+			temp->up->down = Tr;
+			Tr->down = temp->down;
+			Tr->down->up = Tr;
+			temp->up = temp->right->up;
+			temp->right->up->down = temp;
+			temp->down = temp->right->down;
+			temp->right->down->up = temp;
+			temp = temp->right;
+			Tr = Tr->right;
+		}
+		temp->up = Tup;
+		temp->down = Tdown;
+		Tup->down = temp;
+		Tdown->up = temp;
+	}
+	void InsertCellAtRight(Node* temp)
+	{
+
+
+	}
 	void LaunchExcel()
 	{
 		
 			sf::RenderWindow window(sf::VideoMode(1375, 696), "Mini_Excel_Sheet", sf::Style::Close | sf::Style::Resize);
 			window.setPosition(sf::Vector2i(-10, 0));
+			sf::Color veryLightGrey(200, 200, 200);
 			sf::Vector2f mouseWorldPosition ;
 			sf::Vector2f scrollableArea(2420, 1500);
 			bool isDragging = false;
 			sf::Vector2f lastMousePosition;
 			sf::RectangleShape Nav;
-			Nav.setSize(Vector2f(2415,20));
+			Nav.setSize(Vector2f(2415,75));
 			sf::Color greyColor(128, 128, 128);
 			Nav.setFillColor(Color(0,130,0));
 			Nav.setPosition(0, 0);
+			//-------------
+			RectangleShape insertRange;
+			insertRange.setPosition(170, 28);
+			insertRange.setSize(Vector2f(1000,27));
+			insertRange.setOutlineColor(Color::White);
+			insertRange.setOutlineThickness(1);
+			insertRange.setFillColor(veryLightGrey);
+			Text Fx;
+			Font fx;
+			fx.loadFromFile("Fx.ttf");
+			Fx.setFont(fx);
+			Fx.setString("fx : ");
+			Fx.setCharacterSize(23);
+			Fx.setPosition(179, 25);
+			Fx.setFillColor(Color::Black);
+
+
+			//------------
+			RectangleShape indexSep;
+			indexSep.setPosition(0, 75);
+			indexSep.setSize(Vector2f(30, 25));
+			indexSep.setOutlineColor(greyColor);
+			indexSep.setOutlineThickness(1);
+			indexSep.setFillColor(veryLightGrey);
+			//----------------
 			bool edit_text_selected = false;
 			Node* T{};
 			RectangleShape Highlighted_box;
@@ -625,31 +953,36 @@ public:
 			//--------------------------------------
 			bool isVerticalDragging = false;
 			bool isHorizontalDragging = false;
-			sf::RectangleShape verticalScrollBar(sf::Vector2f(20, 400));
+			sf::RectangleShape verticalScrollBar(sf::Vector2f(22, 670));
 			verticalScrollBar.setPosition(1350, 0);
-			verticalScrollBar.setFillColor(sf::Color::Blue);
+			verticalScrollBar.setFillColor(veryLightGrey);
 
-			sf::RectangleShape horizontalScrollBar(sf::Vector2f(400, 20));
-			horizontalScrollBar.setPosition(4, 675);
-			horizontalScrollBar.setFillColor(sf::Color::Blue);
+			sf::RectangleShape horizontalScrollBar(sf::Vector2f(1200, 22));
+			horizontalScrollBar.setOutlineThickness(1);
+			horizontalScrollBar.setOutlineColor(sf::Color::Black);
+			horizontalScrollBar.setPosition(4, 674);
+			horizontalScrollBar.setFillColor(veryLightGrey);
 
 			// Create the scroll thumbs
 			sf::RectangleShape verticalThumb(sf::Vector2f(20, 40));
 			verticalThumb.setPosition(1350, 0);
-			verticalThumb.setFillColor(sf::Color::Red);
+			verticalThumb.setFillColor(sf::Color::White);
 
-			sf::RectangleShape horizontalThumb(sf::Vector2f(40, 20));
-			horizontalThumb.setPosition(4, 675);
-			horizontalThumb.setFillColor(sf::Color::Red);
+			sf::RectangleShape horizontalThumb(sf::Vector2f(40, 18));
+			horizontalThumb.setPosition(4, 676);
+			horizontalThumb.setOutlineThickness(1);
+			horizontalThumb.setOutlineColor(greyColor);
+			horizontalThumb.setFillColor(sf::Color::White);
 			float horizontalOffset;
 			float verticalOffset;
+			int Hr_thumb_last_pos = 0,Hr_thumb_current_pos=0;
 			//-------------------------------------
 			sf::Color transparentGrey(255, 255, 255, 190);
-			int x, y;
-
+			int x = {} ,y = {};
 			while (window.isOpen()) {
 				sf::Event evnt;
 				window.clear();
+			
 				while (window.pollEvent(evnt)) {
 					if (evnt.type == sf::Event::Closed)
 						window.close();
@@ -657,11 +990,9 @@ public:
 					else if (evnt.type == sf::Event::MouseButtonPressed && evnt.mouseButton.button == sf::Mouse::Left)
 					{
 						mouseWorldPosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-						int height_of_cell = 25;
-						int width_of_cell = 80;
-						 x = (mouseWorldPosition.x - left_margin) / width_of_cell;
-						 y = (mouseWorldPosition.y - top_margin) / height_of_cell; 
-						T = GetNodeAt(y, x);
+
+
+						FindClickedCell(T, mouseWorldPosition);
 						 Highlighted_box.setSize(Vector2f(79, 24));
 						 Current = T;
 						 Prev = T;
@@ -1013,8 +1344,6 @@ public:
 								}
 
 							}
-						
-						
 						}
 						else
 						{
@@ -1041,13 +1370,12 @@ public:
 						{
 							int option = DisplayOptions(T->GetPosition().x+30, T->GetPosition().y+60);
 							if (option == 1)
-								InsertRowBelow(y + 1);
+								InsertCellAtLeft(T);
 							
 							else if (option == 2)
 							{
-								InsertRowAbove(y + 1);
+								EraseColumn(T);
 							}
-
 						}
 					}
 				}
@@ -1088,14 +1416,14 @@ public:
 					 }
 					 if (isHorizontalDragging) {
 						 // Move the horizontal thumb along the x-axis
-						 horizontalThumb.setPosition(evnt.mouseMove.x - horizontalThumb.getSize().x / 2, 675);
+						 horizontalThumb.setPosition(evnt.mouseMove.x - horizontalThumb.getSize().x / 2, 676);
 					 }
 			}
 
 
-				 verticalOffset = (verticalThumb.getPosition().y - 100) / (verticalScrollBar.getSize().y - verticalThumb.getSize().y);
+				 verticalOffset = (verticalThumb.getPosition().y + 10) / ((verticalScrollBar.getSize().y-500) - verticalThumb.getSize().y);
 				 // Calculate the horizontal offset for scrolling
-				 horizontalOffset = (horizontalThumb.getPosition().x - 100) / (horizontalScrollBar.getSize().x - horizontalThumb.getSize().x);
+				 horizontalOffset = (horizontalThumb.getPosition().x + 10) / ((horizontalScrollBar.getSize().x - 800) - horizontalThumb.getSize().x);
 
 				 /*for (int i = 0; i < 10; i++) {
 					 sf::RectangleShape rect = rectangles[i];
@@ -1109,15 +1437,16 @@ public:
 					if(!up_or_left)
 					Highlighted_box.setPosition(T->GetPosition());
 					window.draw(Highlighted_box);
-					T->Setcolor(Color::Blue);
-					cout << T->Data << " ";
 				}
-				
+				DrawIndexes(window);
+				window.draw(Nav);
+				window.draw(insertRange);
+				window.draw(Fx);
+				window.draw(indexSep);
 				window.draw(verticalScrollBar);
 				window.draw(horizontalScrollBar);
 				window.draw(verticalThumb);
 				window.draw(horizontalThumb);
-				window.draw(Nav);
 				window.display();
 			}	
 	}
