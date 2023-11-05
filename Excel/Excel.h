@@ -485,7 +485,7 @@ public:
 		Node* current = temp;
 		Node* _left= current->left;
 		Node* _right= current;
-		current = new Node("n", nullptr, nullptr,_left,_right);
+		current = new Node("", nullptr, nullptr,_left,_right);
 		_left->right = current;
 		_right->left = current;
 		_left= _left->down;
