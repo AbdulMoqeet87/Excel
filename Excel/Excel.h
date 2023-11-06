@@ -94,7 +94,7 @@ public:
 		highlighted_rows = 1;
 		highlighted_columns = 1;
 		hr = 1, hc = 1;
-		for (int i = 1; i < 10; i++)
+		for (int i = 1; i < 15; i++)
 		{
 			temp->right = new Node("", nullptr, nullptr, temp, nullptr);
 			temp = temp->right;
@@ -103,23 +103,23 @@ public:
 		Node* DownHead = head->down;
 		Node* D_temp = head->down;
 		temp = head->right;
-		for (int i = 1; i < 10; i++)
+		for (int i = 1; i < 20; i++)
 		{
-			for (int j = 1; j < 10; j++)
+			for (int j = 1; j < 15; j++)
 			{
 				D_temp->right = new Node("", temp, nullptr, D_temp, nullptr);
 				temp->down = D_temp->right;
 				D_temp = D_temp->right;
 				temp = temp->right;
 			}
-			if (i == 9)break;
+			if (i == 19)break;
 			temp = DownHead->right;
 			DownHead->down = new Node("", DownHead);
 			DownHead = DownHead->down;
 			D_temp = DownHead;	
 		}
-		no_of_rows = 10;
-		no_of_cols = 10;
+		no_of_rows = 20;
+		no_of_cols = 15;
 		LeftIndexHead= new IndexCell("1",nullptr,nullptr,nullptr,nullptr);
 		TopIndexHead= new IndexCell("A",nullptr,nullptr,nullptr,nullptr);
 		LeftIndexTail = LeftIndexHead;
@@ -532,7 +532,8 @@ public:
 						window.close();				
 				}
 				i++;
-				if (i == 5000)return;
+				if (i == 3000)return;
+				
 				window.draw(Excel);
 				window.display();
 
@@ -879,7 +880,7 @@ public:
 		int count=0;
 		string S{};
 		int sum = 0;
-		
+		float Avg = 0.0;
 	
 		if (isCountQuery(funct))
 		{
@@ -893,10 +894,13 @@ public:
 			else if (funct[1] == 'A' && funct[2] == 'V' && funct[3] == 'G')
 			{
 				S = CalculculateSumRange(funct);
-				sum = stoi(S);
-				S = CalculculateCountRange(funct);
-				sum = sum / stoi(S);
-				return to_string(sum);
+				Avg = stoi(S);
+				S = "";
+				S = CalculculateAVGCountRange(funct);
+				if (S != "")
+					float(count) = stoi(S);
+				Avg = Avg / float(count);
+				return to_string(Avg);
 
 			}
 
@@ -904,11 +908,38 @@ public:
 			{
 				return CalculculateMinRange(funct);
 			}
-			else	if (funct[1] != 'M' && funct[2] != 'A' && funct[3] != 'X')
+			else	if (funct[1] == 'M' && funct[2] == 'A' && funct[3] == 'X')
 				return CalculculateMaxRange(funct);
 		}
 		
 		else return "";
+	}
+	string CalculculateAVGCountRange(string funct)
+	{
+		int Count = 0;
+
+		if (((funct[9]) - 48) > no_of_rows)return "";
+		if ((funct[5] - 64) > no_of_cols)return "";
+		Node* temp = head;
+		for (int i = 1; i < funct[5] - 64; i++)
+		{
+			temp = temp->right;
+		}
+		for (int i = 1; i < funct[6] - 48; i++)
+		{
+			temp = temp->down;
+		}
+		for (char i = funct[6]; i <= funct[9]; i++)
+		{
+			if (temp->Data != "")
+				Count++;;
+			temp = temp->down;
+		}
+
+		return to_string(Count);
+
+
+	
 	}
 	string CalculculateCountRange(string funct)
 	{
@@ -937,6 +968,7 @@ public:
 
 	
 	}
+
 	string CalculculateSumRange(string funct)
 	{
 		int sum = 0;
@@ -1221,6 +1253,8 @@ public:
 
 							}
 							isContextMenuVisible = false;
+							insertRange.setFillColor(veryLightGrey);
+
 					}
 					if (evnt.type == sf::Event::TextEntered)
 					{
@@ -1288,6 +1322,8 @@ public:
 							Current->Data=CalculateRange(Query);
 							
 							Query_entering = false;
+							insertRange.setFillColor(veryLightGrey);
+
 						}
 						else
 						{
@@ -1636,7 +1672,10 @@ public:
 					{
 						mouseWorldPosition = window.mapPixelToCoords(sf::Mouse::getPosition(window));
 						if (insertRange.getGlobalBounds().contains(mouseWorldPosition.x, mouseWorldPosition.y))
+						{
 							Query_entering = true;
+							insertRange.setFillColor(Color::White);
+						}
 					}
 					
 					//if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) 
