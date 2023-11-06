@@ -1243,6 +1243,7 @@ public:
 								{
 									Query = "";
 									function.setString(Query);
+									Query_entering = false;
 								}
 								hr = highlighted_rows;
 								hc = highlighted_columns;
@@ -1250,11 +1251,9 @@ public:
 								highlighted_rows = 1;
 								Unhighlightselecteddata();
 								up_or_left = false;;
-
 							}
 							isContextMenuVisible = false;
 							insertRange.setFillColor(veryLightGrey);
-
 					}
 					if (evnt.type == sf::Event::TextEntered)
 					{
