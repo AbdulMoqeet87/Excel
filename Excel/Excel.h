@@ -284,7 +284,6 @@ public:
 	}
 	
 
-
 	void InsertRowBelow(Node*temp)
 	{
 		if (!temp)return;
@@ -390,7 +389,6 @@ public:
 		no_of_rows++;
 		no_of_rows++;
 	}
-
 	void InsertColumnAtLeft(Node* temp)
 	{
 		if (!temp)return;
@@ -877,7 +875,7 @@ public:
 	}
 	string CalculateRange(string funct)
 	{
-		int count=0;
+		float  count=0.0;
 		string S{};
 		int sum = 0;
 		float Avg = 0.0;
@@ -898,8 +896,8 @@ public:
 				S = "";
 				S = CalculculateAVGCountRange(funct);
 				if (S != "")
-					float(count) = stoi(S);
-				Avg = Avg / float(count);
+					count = stoi(S);
+				Avg = Avg /count;
 				return to_string(Avg);
 
 			}
